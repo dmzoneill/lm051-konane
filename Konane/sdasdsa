@@ -1,0 +1,488 @@
+class MiniMax
+{
+
+
+	/*
+	 * Sacrificing encapsulation for speed Used in KonaneState to determine
+	 * Crucial player colors and quick access to the linear tree
+	 */
+
+	public static char colorPlayer;
+	public static char colorOpponent;
+	public static int maxDepth = 4;
+	public static ArrayList< KonaneState > linearTree;
+	public static ArrayList< KonaneState >[] lists;
+
+
+	/**
+	 * MiniMax Constructor
+	 * 
+	 * @param head
+	 *            ( an reference to the current Konane )
+	 * @param me
+	 *            ( the color of the this player )
+	 */
+
+	@SuppressWarnings( "unchecked" )
+	public MiniMax( Konane head , char me )
+	{
+		MiniMax.colorPlayer = me;
+		MiniMax.colorOpponent = ( me == 'w' ) ? 'b' : 'w';
+		MiniMax.linearTree = new ArrayList< KonaneState >();
+		MiniMax.linearTree.clear();
+		MiniMax.lists = ( ArrayList< KonaneState >[] ) new ArrayList[ maxDepth + 1 ];
+		new KonaneState( head );
+	}
+
+
+	/**
+	 * Gets the next KonaneMove to play
+	 * 
+	 * @return KonaneMove
+	 */
+
+	public KonaneMove getNextMove()
+	{
+		if( MiniMax.maxDepth % 2 == 0 )
+		{
+			this.getMax( MiniMax.maxDepth );
+		}
+		else
+		{
+			this.getMin( MiniMax.maxDepth );
+		}
+		
+		this.DepthChargePrint();
+
+		return MiniMax.linearTree.get( 0 ).getBestChild().getLastMove();
+	}
+
+
+	public void DepthChargePrint()
+	{
+		for ( int depth = 0 ; depth < MiniMax.lists.length ; depth++ )
+		{
+			ArrayList< KonaneState > depthList = MiniMax.lists[ depth ];
+			if( depthList != null )
+			{
+				for ( int width = 0 ; width < depthList.size() ; width++ )
+				{
+					System.out.print( depthList.get( width ).getPosition() + "," );
+				}
+			}
+			System.out.println("");
+		}
+	}
+
+
+	/**
+	 * Recursive with GetMin Starts out on the
+	 * 
+	 * @param depth
+	 */
+
+	public void getMax( int depth )
+	{
+		if( depth == -1 )
+		{
+			return;
+		}
+
+		KonaneState tempState = null;
+
+		ArrayList< KonaneState > parents = new ArrayList< KonaneState >();
+
+		for ( int counter = 0 ; counter < MiniMax.linearTree.size() ; counter++ )
+		{
+			tempState = MiniMax.linearTree.get( counter );
+
+			if( tempState.isMax() == true && tempState.getDepth() == depth - 1 && tempState.getNextStates().size() != 0 )
+			{
+				if( !parents.contains( tempState ) )
+				{
+					parents.add( tempState );
+				}
+			}
+		}
+
+		for ( KonaneState parent : parents )
+		{
+			boolean firstChildUp = false;
+
+			for ( int counter = 0 ; counter < MiniMax.linearTree.size() ; counter++ )
+			{
+				tempState = MiniMax.linearTree.get( counter );
+				if( tempState.isMax() == false && tempState.getDepth() == depth && tempState.getParent() == parent )
+				{
+					if( firstChildUp == false )
+					{
+						parent.setHeurisiticValue( tempState.getHeurisiticValue() , tempState );
+						firstChildUp = true;
+					}
+					else if( tempState.getHeurisiticValue() > tempState.getParent().getHeurisiticValue() )
+					{
+						parent.setHeurisiticValue( tempState.getHeurisiticValue() , tempState );
+					}
+				}
+			}
+		}
+
+		getMin( depth - 1 );
+	}
+
+
+	/**
+	 * @param depth
+	 */
+	public void getMin( int depth )
+	{
+		if( depth == -1 )
+		{
+			return;
+		}
+
+		KonaneState tempState = null;
+
+		ArrayList< KonaneState > parents = new ArrayList< KonaneState >();
+
+		for ( int counter = 0 ; counter < MiniMax.linearTree.size() ; counter++ )
+		{
+			tempState = MiniMax.linearTree.get( counter );
+
+			if( tempState.isMax() == false && tempState.getDepth() == depth - 1 && tempState.getNextStates().size() != 0 )
+			{
+				if( !parents.contains( tempState ) )
+				{
+					parents.add( tempState );
+				}
+			}
+
+		}
+
+		for ( KonaneState parent : parents )
+		{
+			boolean firstChildUp = false;
+
+			for ( int counter = 0 ; counter < MiniMax.linearTree.size() ; counter++ )
+			{
+				tempState = MiniMax.linearTree.get( counter );
+				if( tempState.isMax() == true && tempState.getDepth() == depth && tempState.getParent() == parent )
+				{
+					if( firstChildUp == false )
+					{
+						parent.setHeurisiticValue( tempState.getHeurisiticValue() , tempState );
+						firstChildUp = true;
+					}
+					else if( tempState.getHeurisiticValue() < tempState.getParent().getHeurisiticValue() )
+					{
+						parent.setHeurisiticValue( tempState.getHeurisiticValue() , tempState );
+					}
+				}
+			}
+		}
+
+		getMax( depth - 1 );
+	}
+
+
+	/**
+	 * @param state
+	 */
+	public static void addState( KonaneState state )
+	{
+		MiniMax.linearTree.add( state );
+	}
+
+}
+
+
+class KonaneState
+{
+
+
+	private static int count = 0;
+	private int position;
+	private Konane currentState;
+	private ArrayList< KonaneState > nextStates;
+	private ArrayList< KonaneMove > nextMoves;
+	private int currentDepth;
+	private boolean max;
+	private KonaneMove moveThatCreatedState;
+	private KonaneState parentState;
+	private int heuristicValue;
+	private KonaneState bestChild = null;
+
+
+	/**
+	 * @param state
+	 */
+	public KonaneState( Konane state )
+	{
+		KonaneState.count = 0;
+		KonaneState.count++;
+		this.position = KonaneState.count;
+		MiniMax.addState( this );
+		this.max = false;
+		this.nextStates = new ArrayList< KonaneState >();
+		this.currentState = state;
+		this.currentDepth = 0;
+		if( MiniMax.lists[ this.currentDepth ] == null )
+		{
+			MiniMax.lists[ this.currentDepth ] = new ArrayList< KonaneState >();
+		}
+		MiniMax.lists[ this.currentDepth ].add( this );
+		this.generateStates();
+	}
+
+
+	/**
+	 * @param state
+	 * @param depth
+	 * @param max
+	 * @param move
+	 * @param parent
+	 */
+	public KonaneState( Konane state , int depth , boolean max , KonaneMove move , KonaneState parent )
+	{
+		KonaneState.count++;
+		this.position = KonaneState.count;
+		MiniMax.addState( this );
+		this.parentState = parent;
+		this.moveThatCreatedState = move;
+		this.max = max;
+		this.currentDepth = depth;
+		this.nextStates = new ArrayList< KonaneState >();
+		this.currentState = state;
+		if( MiniMax.lists[ this.currentDepth ] == null )
+		{
+			MiniMax.lists[ this.currentDepth ] = new ArrayList< KonaneState >();
+		}
+		MiniMax.lists[ this.currentDepth ].add( this );
+		this.generateStates();
+	}
+
+
+	/**
+	 * 
+	 */
+	private void generateStates()
+	{
+		if( this.currentDepth == MiniMax.maxDepth )
+		{
+			this.calculateHeuristicValue();
+			return;
+		}
+		else
+		{
+			if( this.max == true )
+			{
+				this.nextMoves = this.currentState.generateMoves( MiniMax.colorOpponent );
+				this.generateMinNextStates();
+			}
+			else
+			{
+				this.nextMoves = this.currentState.generateMoves( MiniMax.colorPlayer );
+				this.generateMaxNextStates();
+			}
+			this.calculateHeuristicValue();
+		}
+	}
+
+
+	/**
+	 * 
+	 */
+	private void generateMaxNextStates()
+	{
+		Konane newBoard;
+		KonaneState tempState;
+		KonaneMove possibleMove;
+
+		if( this.currentDepth == MiniMax.maxDepth )
+		{
+			return;
+		}
+		else
+		{
+			for ( int counter = 0 ; counter < this.nextMoves.size() ; counter++ )
+			{
+				newBoard = new Konane( this.currentState );
+				possibleMove = new KonaneMove( this.nextMoves.get( counter ) );
+
+				try
+				{
+					newBoard.makeMove( MiniMax.colorPlayer , possibleMove );
+				}
+				catch ( Exception e )
+				{
+					// e.printStackTrace();
+				}
+
+				tempState = new KonaneState( newBoard , this.currentDepth + 1 , !this.max , possibleMove , this );
+				this.nextStates.add( tempState );
+			}
+		}
+	}
+
+
+	/**
+	 * 
+	 */
+	private void generateMinNextStates()
+	{
+		Konane newBoard;
+		KonaneState tempState;
+		KonaneMove possibleMove;
+
+		if( this.currentDepth == MiniMax.maxDepth )
+		{
+			return;
+		}
+		else
+		{
+			for ( int counter = 0 ; counter < this.nextMoves.size() ; counter++ )
+			{
+				newBoard = new Konane( this.currentState );
+				possibleMove = new KonaneMove( this.nextMoves.get( counter ) );
+
+				try
+				{
+					newBoard.makeMove( MiniMax.colorOpponent , possibleMove );
+				}
+				catch ( Exception e )
+				{
+					// e.printStackTrace();
+				}
+
+				tempState = new KonaneState( newBoard , this.currentDepth + 1 , !this.max , possibleMove , this );
+				this.nextStates.add( tempState );
+			}
+		}
+	}
+
+
+	/**
+	 * 
+	 */
+	private void calculateHeuristicValue()
+	{
+		double heuristic = 0;
+		int mypieces = this.currentState.countSymbol( MiniMax.colorPlayer );
+		int oppieces = this.currentState.countSymbol( MiniMax.colorOpponent );
+		int piecesRatio = mypieces - oppieces;
+
+		if( this.max )
+		{
+			int n = this.currentState.generateMoves( MiniMax.colorPlayer ).size();
+			n = ( n == 0 ) ? Integer.MIN_VALUE + 50000 : n;
+			heuristic = n + this.currentDepth + piecesRatio;
+		}
+		else
+		{
+			int n = this.currentState.generateMoves( MiniMax.colorPlayer ).size();
+			n = ( n == 0 ) ? Integer.MAX_VALUE - 50000 : n;
+			heuristic = n + this.currentDepth + piecesRatio;
+		}
+
+		this.heuristicValue = ( int ) heuristic;
+	}
+
+
+	/**
+	 * @return
+	 */
+	public int getHeurisiticValue()
+	{
+		return this.heuristicValue;
+	}
+
+
+	/**
+	 * @return
+	 */
+	public boolean isMax()
+	{
+		return this.max;
+	}
+
+
+	/**
+	 * @return
+	 */
+	public KonaneMove getLastMove()
+	{
+		return this.moveThatCreatedState;
+	}
+
+
+	/**
+	 * @param value
+	 * @param imbetter
+	 */
+	public void setHeurisiticValue( int value , KonaneState imbetter )
+	{
+		this.heuristicValue = value;
+		this.bestChild = imbetter;
+	}
+
+
+	/**
+	 * @return
+	 */
+	public int getDepth()
+	{
+		return this.currentDepth;
+	}
+
+
+	/**
+	 * @return
+	 */
+	public KonaneState getParent()
+	{
+		return this.parentState;
+	}
+
+
+	/**
+	 * @return
+	 */
+	public ArrayList< KonaneState > getNextStates()
+	{
+		return this.nextStates;
+	}
+
+
+	public int getPosition()
+	{
+		return this.position;
+	}
+
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	public boolean equals( Object other )
+	{
+		if( ( ( KonaneState ) other ).getPosition() == this.position )
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+
+	/**
+	 * @return
+	 */
+	public KonaneState getBestChild()
+	{
+		return this.bestChild;
+	}
+
+}
