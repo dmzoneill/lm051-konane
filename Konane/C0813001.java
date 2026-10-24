@@ -1,430 +1,426 @@
-import java.util.ArrayList;
 import ie.ul.konane.Konane;
 import ie.ul.konane.KonaneMove;
 import ie.ul.konane.Player;
-
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * MiniMax DFS Implementation to play Konane
- * 
+ * MiniMax DFS Implementation to play Konane.
+ *
  * @author David O Neill ( 0813001 )
  * @version 4.0
  */
+public class C0813001 extends Player {
+  /** Heuristic used by this player's search tree. */
+  private static final char HEURISTIC = 'b';
 
-public class C0813001 extends Player
-{
-	private Konane currentState;
+  /** The board currently being played. */
+  private Konane currentState;
 
+  /**
+   * Constructor.
+   *
+   * @param pName ( The name Associated with the user )
+   */
+  public C0813001(final String pName) {
+    super(pName);
+  }
 
-	/**
-	 * Constructor
-	 * 
-	 * @param pName ( The name Associated with the user )
-	 */
-	
-	public C0813001( String pName )
-	{
-		super( pName );
-	}
+  /**
+   * Name this player reports once initialised.
+   *
+   * @return the player name
+   */
+  protected String playerName() {
+    return "0813001";
+  }
 
+  /**
+   * Heuristic letter ('a' to 'f', anything else counts moves) for the search.
+   *
+   * @return the heuristic letter
+   */
+  protected char heuristic() {
+    return HEURISTIC;
+  }
 
-	/* (non-Javadoc)
-	 * @see ie.ul.konane.Player#initialize(char)
-	 */
-	
-	@Override
-	public void initialize( char pColour )
-	{
-		this.name = "0813001";
-		this.colour = pColour;
-	}
+  /**
+   * {@inheritDoc}
+   *
+   * @see ie.ul.konane.Player#initialize(char)
+   */
+  @Override
+  public void initialize(final char pColour) {
+    this.name = playerName();
+    this.colour = pColour;
+  }
 
+  /**
+   * Instantiates the tree and gets the best move.
+   *
+   * @return KonaneMove ( the next best move )
+   */
+  private KonaneMove decideMyMove() {
+    KonaneMove move = null;
 
-	/**
-	 * Instantiates the tree and gets the best move
-	 * 
-	 * @return KonaneMove ( the next best move )
-	 */
-	
-	private KonaneMove decideMyMove()
-	{
-		KonaneMove move = null;
+    if (this.currentState.generateMoves(this.colour).size() == 0) {
+      KonaneMove gameOver = new KonaneMove(0, 0);
+      gameOver.lostGame();
+      return gameOver;
+    }
 
-		if( this.currentState.generateMoves( this.colour ).size() == 0 )
-		{
-			KonaneMove gameOver = new KonaneMove( 0 , 0 );
-			gameOver.lostGame();
-			return gameOver;
-		}
+    try {
+      Tree tree = new Tree(this.currentState, this.colour, heuristic());
+      move = tree.getNextMove();
+    } catch (Exception e) {
+      move = this.currentState.generateMoves(this.colour).get(0);
+      System.out.println(e.getMessage());
+      e.printStackTrace();
+    }
 
-		try
-		{
-			Tree tree = new Tree( this.currentState , this.colour );
-			move = tree.getNextMove();
-		}
-		catch ( Exception e )
-		{
-			move = this.currentState.generateMoves( this.colour ).get( 0 );
-			System.out.println( e.getMessage() );
-			e.printStackTrace();
-		}
+    return move;
+  }
 
-		return move;
-	}
-
-
-	/* (non-Javadoc)
-	 * @see ie.ul.konane.Player#makeMove(ie.ul.konane.Konane)
-	 */
-	
-	@Override
-	public KonaneMove makeMove( Konane game )
-	{
-		this.currentState = game;
-		KonaneMove m = this.decideMyMove();
-		return m;
-	}
-
+  /**
+   * {@inheritDoc}
+   *
+   * @see ie.ul.konane.Player#makeMove(ie.ul.konane.Konane)
+   */
+  @Override
+  public KonaneMove makeMove(final Konane game) {
+    this.currentState = game;
+    KonaneMove m = this.decideMyMove();
+    return m;
+  }
 }
 
-
-
-
-
-
-
 /**
- * MiniMax DFS Implementation to play Konane
- * 
+ * MiniMax DFS search tree used by the Konane players.
+ *
  * @author David O Neill ( 0813001 )
  * @version 4.0
  */
+class Tree {
+  /** Maximum search depth. */
+  static final int MAX_DEPTH = 4;
 
-class Tree
-{	
-	public static char PLAYER;
-	public static char OPPONENT;
-	public static int MAXDEPTH;
-	public static int MAXVALUE;
-	public static int MINVALUE;
-	public static char heurisitic;
-	private Node head;
+  /** Per-depth margin kept free below the int limits. */
+  private static final int DEPTH_MARGIN = 5000;
 
-	
-	/**
-	 * Java's version of a static constructor
-	 */
-	
-	static
-	{
-		Tree.MAXDEPTH = 4;
-		Tree.MAXVALUE = Integer.MAX_VALUE - ( Tree.MAXDEPTH * 5000 );
-		Tree.MINVALUE = Integer.MIN_VALUE + ( Tree.MAXDEPTH * 5000 );
-		Tree.heurisitic = 'b';
-	}
+  /** Score for a state where the opponent cannot move. */
+  static final int MAX_VALUE = Integer.MAX_VALUE - (MAX_DEPTH * DEPTH_MARGIN);
 
+  /** Score for a state where this player cannot move. */
+  static final int MIN_VALUE = Integer.MIN_VALUE + (MAX_DEPTH * DEPTH_MARGIN);
 
-	/**
-	 * Constructor for the Tree 
-	 * 
-	 * @param board ( the current Konane )
-	 * @param me ( the char representing my color )
-	 */
-	
-	public Tree( Konane board , char me )
-	{
-		Tree.PLAYER = me;
-		Tree.OPPONENT = ( me == 'w' ) ? 'b' : 'w';
-		this.head = new Node( board );
-	}
+  /** The colour this tree plays for. */
+  private final char player;
 
+  /** The opposing colour. */
+  private final char opponent;
 
-	/**
-	 * After the tree has completed evaluating itself
-	 * This is use to get the move that was pushed to the top
-	 * 
-	 * @return KonaneMove ( the best move )
-	 */
-	
-	public KonaneMove getNextMove()
-	{
-		return this.head.getBestChild().getLastMove();
-	}
+  /** Heuristic letter used to score states. */
+  private final char heuristic;
+
+  /** Root of the tree (the current state). */
+  private final Node head;
+
+  /**
+   * Constructor for the Tree.
+   *
+   * @param board ( the current Konane )
+   * @param me ( the char representing my color )
+   * @param heuristicType ( the heuristic letter to score states with )
+   */
+  Tree(final Konane board, final char me, final char heuristicType) {
+    this.player = me;
+    if (me == 'w') {
+      this.opponent = 'b';
+    } else {
+      this.opponent = 'w';
+    }
+    this.heuristic = heuristicType;
+    this.head = new Node(this, board);
+  }
+
+  /**
+   * The colour this tree plays for.
+   *
+   * @return the player colour
+   */
+  char getPlayer() {
+    return this.player;
+  }
+
+  /**
+   * The opposing colour.
+   *
+   * @return the opponent colour
+   */
+  char getOpponent() {
+    return this.opponent;
+  }
+
+  /**
+   * The heuristic letter used to score states.
+   *
+   * @return the heuristic letter
+   */
+  char getHeuristic() {
+    return this.heuristic;
+  }
+
+  /**
+   * Gets the move pushed to the top once the tree is evaluated.
+   *
+   * @return KonaneMove ( the best move )
+   */
+  KonaneMove getNextMove() {
+    return this.head.getBestChild().getLastMove();
+  }
 }
 
-
-
-
-
-
-
 /**
- * MiniMax DFS Implementation to play Konane
- * 
+ * A state in the MiniMax DFS search tree.
+ *
  * @author David O Neill ( 0813001 )
  * @version 4.0
  */
+class Node {
+  /** Weight applied to the opponent in the weighted heuristics. */
+  private static final int OPPONENT_WEIGHT = 3;
 
+  /** The tree this node belongs to. */
+  private final Tree tree;
 
-class Node
-{
-	private boolean max;
+  /** Whether this is a max node. */
+  private boolean max;
 
-	private Konane currentBoard;
-	private int currentDepth = 0;
+  /** The board for this state. */
+  private Konane currentBoard;
 
-	private ArrayList< Node > nextNodes = null;
-	private ArrayList< KonaneMove > nextMoves = null;
+  /** Depth of this node. */
+  private int currentDepth = 0;
 
-	private KonaneMove moveThatCreatedState = null;
-	private Node parentNode = null;
-	private Node bestChildNode = null;
+  /** Child nodes. */
+  private List<Node> nextNodes = null;
 
-	private int heuristicValue = 0;
-	
+  /** Moves available from this state. */
+  private List<KonaneMove> nextMoves = null;
 
-	/**
-	 * Default constructor for the Head	 * 
-	 * This is the current state ( not considered a move )
-	 * Begins the recursive generation of the Tree
-	 * 
-	 * @param board ( Konane the current state )
-	 */
-	
-	public Node( Konane board )
-	{
-		this.max = false;
-		this.nextNodes = new ArrayList< Node >();
-		this.currentBoard = board;
-		this.currentDepth = 0;
-		this.generateNextNodes( Tree.PLAYER , this.max );
-	}
+  /** The move that created this state. */
+  private KonaneMove moveThatCreatedState = null;
 
+  /** Parent node. */
+  private Node parentNode = null;
 
-	/**
-	 * Overloaded constructor
-	 * Recursively generates next moves until MAXDEPTH is reached
-	 * The base case is, if this node's heuristic value is better than its parents
-	 * Then push this child Node to its parent's Node
-	 * 
-	 * @param board ( Konane, that was generate for the next possible move )
-	 * @param depth ( The depth of this Node )
-	 * @param isMax ( Indicates whether its a min or max node )
-	 * @param move ( The KonaneMove that generated this state )
-	 * @param parent ( The parent of this state )
-	 * @param whichPlayer ( The player at this depth )
-	 */
-	
-	public Node( Konane board , int depth , boolean isMax , KonaneMove move , Node parent , char whichPlayer )
-	{
-		this.parentNode = parent;
-		this.moveThatCreatedState = move;
-		this.max = isMax;
-		this.currentDepth = depth;
-		this.nextNodes = new ArrayList< Node >();
-		this.currentBoard = board;
-		this.generateNextNodes( whichPlayer , this.max );
+  /** Best child found so far. */
+  private Node bestChildNode = null;
 
-		if( parent.getBestChild() == null )
-		{
-			parent.setHeurisiticValue( this.heuristicValue , this );
-		}
-		else
-		{
-			if( this.max )
-			{
-				if( this.heuristicValue > parent.getHeurisiticValue() )
-				{
-					parent.setHeurisiticValue( this.heuristicValue , this );
-				}
-			}
-			else
-			{
-				if( this.heuristicValue < parent.getHeurisiticValue() )
-				{
-					parent.setHeurisiticValue( this.heuristicValue , this );
-				}
-			}
-		}
-		this.nextMoves.clear();
-		this.nextNodes.clear();
-	}
+  /** Heuristic value of this node. */
+  private int heuristicValue = 0;
 
+  /**
+   * Head constructor: the current state, not a move.
+   *
+   * <p>Begins the recursive generation of the Tree.
+   *
+   * @param owner ( the tree being built )
+   * @param board ( Konane the current state )
+   */
+  Node(final Tree owner, final Konane board) {
+    this.tree = owner;
+    this.max = false;
+    this.nextNodes = new ArrayList<Node>();
+    this.currentBoard = board;
+    this.currentDepth = 0;
+    this.generateNextNodes(owner.getPlayer(), this.max);
+  }
 
-	/**
-	 * Gets the list of possible moves
-	 * And generates the next Node states for each move
-	 * 
-	 * @param whichPlayer ( The player at this depth )
-	 * @param isMax ( is max or min )
-	 */
-	
-	private void generateNextNodes( char whichPlayer , boolean isMax )
-	{
-		Konane newBoard;
-		Node tempNode;
-		KonaneMove possibleMove;
+  /**
+   * Child constructor, recursing until MAX_DEPTH is reached.
+   *
+   * <p>A child scoring better than the best so far becomes the best child.
+   *
+   * @param board ( Konane, that was generate for the next possible move )
+   * @param depth ( The depth of this Node )
+   * @param isMax ( Indicates whether its a min or max node )
+   * @param move ( The KonaneMove that generated this state )
+   * @param parent ( The parent of this state )
+   * @param whichPlayer ( The player at this depth )
+   */
+  Node(
+      final Konane board,
+      final int depth,
+      final boolean isMax,
+      final KonaneMove move,
+      final Node parent,
+      final char whichPlayer) {
+    this.tree = parent.tree;
+    this.parentNode = parent;
+    this.moveThatCreatedState = move;
+    this.max = isMax;
+    this.currentDepth = depth;
+    this.nextNodes = new ArrayList<Node>();
+    this.currentBoard = board;
+    this.generateNextNodes(whichPlayer, this.max);
 
-		this.nextMoves = this.currentBoard.generateMoves( whichPlayer );
+    int parentValue = parent.getHeurisiticValue();
+    if (parent.getBestChild() == null) {
+      parent.setHeurisiticValue(this.heuristicValue, this);
+    } else if (this.max && this.heuristicValue > parentValue) {
+      parent.setHeurisiticValue(this.heuristicValue, this);
+    } else if (!this.max && this.heuristicValue < parentValue) {
+      parent.setHeurisiticValue(this.heuristicValue, this);
+    }
+    this.nextMoves.clear();
+    this.nextNodes.clear();
+  }
 
-		this.calculateHeuristicValue();
+  /**
+   * Generates the next Node state for each possible move.
+   *
+   * @param whichPlayer ( The player at this depth )
+   * @param isMax ( is max or min )
+   */
+  private void generateNextNodes(final char whichPlayer, final boolean isMax) {
+    this.nextMoves = this.currentBoard.generateMoves(whichPlayer);
 
-		if( this.currentDepth == Tree.MAXDEPTH )
-		{
-			return;
-		}
-		else
-		{
-			for ( int counter = 0 ; counter < this.nextMoves.size() ; counter++ )
-			{
-				newBoard = new Konane( this.currentBoard );
-				possibleMove = new KonaneMove( this.nextMoves.get( counter ) );
+    this.calculateHeuristicValue();
 
-				try
-				{
-					newBoard.makeMove( whichPlayer , possibleMove );
-				}
-				catch ( Exception e )
-				{
-					e.printStackTrace();
-				}
+    if (this.currentDepth == Tree.MAX_DEPTH) {
+      return;
+    }
 
-				tempNode = new Node( newBoard , this.currentDepth + 1 , !isMax , possibleMove , this , ( whichPlayer == Tree.PLAYER ) ? Tree.OPPONENT : Tree.PLAYER );
-				this.nextNodes.add( tempNode );
-			}
-		}
-	}
+    char next = this.tree.getPlayer();
+    if (whichPlayer == this.tree.getPlayer()) {
+      next = this.tree.getOpponent();
+    }
+    for (int counter = 0; counter < this.nextMoves.size(); counter++) {
+      Konane board = new Konane(this.currentBoard);
+      KonaneMove option = new KonaneMove(this.nextMoves.get(counter));
 
+      try {
+        board.makeMove(whichPlayer, option);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
 
-	/**
-	 * Calculates the heuristic value of this Node
-	 */
-	
-	private void calculateHeuristicValue()
-	{
-		int mymoves = 1;
-		int opmoves = 1;
-		int heuristic = this.currentDepth;	
-		int mypieces = this.currentBoard.countSymbol( Tree.PLAYER );
-		int oppieces = this.currentBoard.countSymbol( Tree.OPPONENT );
-		
-		if( this.currentDepth > 0 )
-		{		
-			mymoves = ( this.max ) ? this.parentNode.getParentMoveCount() + 1 : this.nextMoves.size() + 1;
-			opmoves = ( this.max ) ? this.nextMoves.size() + 1 : this.parentNode.getParentMoveCount() + 1;
-		}
+      int depth = this.currentDepth + 1;
+      boolean childMax = !isMax;
+      Node child = new Node(board, depth, childMax, option, this, next);
+      this.nextNodes.add(child);
+    }
+  }
 
-		if( this.currentDepth != Tree.MAXDEPTH && this.nextMoves.size() == 0 )
-		{
-			heuristic += ( this.max == true ) ? Tree.MAXVALUE : Tree.MINVALUE;
-		}
-		
-		if( Tree.heurisitic == 'a' )
-		{
-			heuristic += ( int ) Math.round( mymoves - ( opmoves * 3 ) );
-		}
-		else if( Tree.heurisitic == 'b' )
-		{
-			heuristic += mymoves - opmoves;
-		}
-		else if( Tree.heurisitic == 'c' )
-		{
-			heuristic += ( int ) Math.round( mymoves / ( opmoves * 3 ) );
-		}
-		else if( Tree.heurisitic == 'd' )
-		{
-			heuristic += ( int ) Math.round( mymoves / opmoves );
-		}
-		else if( Tree.heurisitic == 'e' )
-		{
-			heuristic += ( int ) Math.round( mypieces / ( oppieces * 3 ) );
-		}
-		else if( Tree.heurisitic == 'f' )
-		{
-			heuristic += ( int ) Math.round( mypieces / oppieces );
-		}
-		else
-		{
-			heuristic += this.nextMoves.size();
-		}
+  /** Calculates the heuristic value of this Node. */
+  private void calculateHeuristicValue() {
+    int mymoves = 1;
+    int opmoves = 1;
+    int heuristic = this.currentDepth;
+    int mypieces = this.currentBoard.countSymbol(this.tree.getPlayer());
+    int oppieces = this.currentBoard.countSymbol(this.tree.getOpponent());
+    int moveCount = this.nextMoves.size();
 
-		
+    if (this.currentDepth > 0) {
+      int parentMoves = this.parentNode.getParentMoveCount();
+      if (this.max) {
+        mymoves = parentMoves + 1;
+        opmoves = moveCount + 1;
+      } else {
+        mymoves = moveCount + 1;
+        opmoves = parentMoves + 1;
+      }
+    }
 
-		this.heuristicValue = heuristic;
-	}
+    if (this.currentDepth != Tree.MAX_DEPTH && moveCount == 0) {
+      if (this.max) {
+        heuristic += Tree.MAX_VALUE;
+      } else {
+        heuristic += Tree.MIN_VALUE;
+      }
+    }
 
-	
-	/**
-	 * Gets a count of the moves for this Node
-	 * @return ( number of possible moves )
-	 */
-	
-	public int getParentMoveCount()
-	{
-		return this.nextMoves.size();
-	}
-	
+    switch (this.tree.getHeuristic()) {
+      case 'a':
+        heuristic += (int) Math.round(mymoves - (opmoves * OPPONENT_WEIGHT));
+        break;
+      case 'b':
+        heuristic += mymoves - opmoves;
+        break;
+      case 'c':
+        heuristic += (int) Math.round(mymoves / (opmoves * OPPONENT_WEIGHT));
+        break;
+      case 'd':
+        heuristic += (int) Math.round(mymoves / opmoves);
+        break;
+      case 'e':
+        heuristic += (int) Math.round(mypieces / (oppieces * OPPONENT_WEIGHT));
+        break;
+      case 'f':
+        heuristic += (int) Math.round(mypieces / oppieces);
+        break;
+      default:
+        heuristic += moveCount;
+        break;
+    }
 
-	/**
-	 * Gets the heuristic of this Node
-	 * 
-	 * @return ( Heuristic Value )
-	 */
-	
-	public int getHeurisiticValue()
-	{
-		return this.heuristicValue;
-	}
+    this.heuristicValue = heuristic;
+  }
 
+  /**
+   * Gets a count of the moves for this Node.
+   *
+   * @return ( number of possible moves )
+   */
+  int getParentMoveCount() {
+    return this.nextMoves.size();
+  }
 
-	/**
-	 * Gets the move that created this state
-	 * 
-	 * @return ( The move )
-	 */
-	
-	public KonaneMove getLastMove()
-	{
-		return this.moveThatCreatedState;
-	}
+  /**
+   * Gets the heuristic of this Node.
+   *
+   * @return ( Heuristic Value )
+   */
+  int getHeurisiticValue() {
+    return this.heuristicValue;
+  }
 
+  /**
+   * Gets the move that created this state.
+   *
+   * @return ( The move )
+   */
+  KonaneMove getLastMove() {
+    return this.moveThatCreatedState;
+  }
 
-	/**
-	 * Sets the parent of a Node's, Heuristic value and besctChild 
-	 * 
-	 * @param betterHeuristicValue ( the heuristic of the child )
-	 * @param betterChildNode ( the child )
-	 */
-	
-	public void setHeurisiticValue( int betterHeuristicValue , Node betterChildNode )
-	{
-		this.heuristicValue = betterHeuristicValue;
-		this.bestChildNode = betterChildNode;
-	}
+  /**
+   * Sets the parent of a Node's, Heuristic value and besctChild.
+   *
+   * @param betterValue ( the heuristic of the child )
+   * @param betterChild ( the child )
+   */
+  void setHeurisiticValue(final int betterValue, final Node betterChild) {
+    this.heuristicValue = betterValue;
+    this.bestChildNode = betterChild;
+  }
 
+  /**
+   * Gets the parent of a Node.
+   *
+   * @return ( the parent Node )
+   */
+  Node getParent() {
+    return this.parentNode;
+  }
 
-	/**
-	 * Gets the parent of a Node
-	 * 
-	 * @return ( the parent Node )
-	 */
-	
-	public Node getParent()
-	{
-		return this.parentNode;
-	}
-
-
-	/**
-	 * Gets the best child from a Node
-	 * Typically used with the Head
-	 * 
-	 * @return ( the best child )
-	 */
-	
-	public Node getBestChild()
-	{
-		return this.bestChildNode;
-	}
-
+  /**
+   * Gets the best child from a Node Typically used with the Head.
+   *
+   * @return ( the best child )
+   */
+  Node getBestChild() {
+    return this.bestChildNode;
+  }
 }

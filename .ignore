@@ -1,0 +1,16 @@
+# Course-provided Konane framework (package ie.ul.konane: Konane board/rules by Dr Lisa Meeden, adapted for the
+# University of Limerick AI module, plus KonaneMove/KonaneException/Player), shipped to students with the assignment.
+# The same framework is copied into both Eclipse projects.
+Konane/ie/ul/konane/
+KonaneDFS/src/ie/ul/konane/
+
+# Course-provided example players and test harness shipped with the same framework
+# (same javadoc style as ie.ul.konane.Player; no student authorship).
+Konane/HumanPlayer.java
+Konane/RandomPlayer.java
+Konane/SimplePlayer.java
+Konane/Test.java
+KonaneDFS/src/HumanPlayer.java
+KonaneDFS/src/RandomPlayer.java
+KonaneDFS/src/SimplePlayer.java
+KonaneDFS/src/Test.java
