@@ -1,5 +1,9 @@
 # Konane
 
+<p align="center">
+  <img src=".github/logo.png" alt="lm051-konane logo" width="128" />
+</p>
+
 A Java implementation of Konane, the Hawaiian checkers game, with computer
 players. Written for the LM051 Computer Systems degree at the University of
 Limerick.
